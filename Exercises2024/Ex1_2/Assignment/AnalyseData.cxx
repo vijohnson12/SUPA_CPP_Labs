@@ -1,5 +1,5 @@
 //I'm guessing you'll read this first, I used a lot of help on this because I thought it was very difficult. I spent probably 30+ hours on it and that's with help (mostly chat gpt). So I'm sorry I know you said not trust it but I did the best I could, for some reason c++ just isn't intuitive to me, although going through it I do feel more comfortable. I just learn better based of exmaples first then making my own code. Thanks for you patience in advance. 
-
+//Victoria Johnson 11/13/2024
 
 #include <iostream>
 #include <fstream>
