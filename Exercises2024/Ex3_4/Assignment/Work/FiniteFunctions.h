@@ -47,3 +47,34 @@ protected:
 private:
   double invxsquared(double x); //The default functional form
 };
+
+class NormalDistribution : public FiniteFunction{
+  public:
+    NormalDistribution(double mu, double sigma, double range_min = -5.0, double range_max = 5.0, std::string outfile = "NormalDist");
+    double callFunction(double x) override;
+    std::vector<double> metropolisSample(int n_samples, double step_size);
+  private:
+    double m_mu, m_sigma;
+};
+
+class CauchyLorentzDistribution : public FiniteFunction{
+  public:
+    CauchyLorentzDistribution(double x0, double gamma, double range_min = -5.0, double range_max = 5.0, std::string outfile = "CauchyLorentzDist");
+    double callFunction(double x) override;
+
+  private:
+    double m_x0, m_gamma;
+};
+
+class NegativeCrystalBallDistribution : public FiniteFunction{
+  public:
+    NegativeCrystalBallDistribution(double x_bar, double sigma, double alpha, double n, double range_min = -5.0, double range_max = 5.0, std::string outfile = "NegativeCrystalBallDist");
+    double callFunction(double x) override;
+
+  private:
+    double m_x_bar, m_sigma, m_alpha, m_n, m_N;
+    double A(double alpha, double n);
+    double B(double alpha, double n);
+    double C(double alpha, double n);
+    double D(double alpha);
+};

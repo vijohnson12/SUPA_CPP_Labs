@@ -1,4 +1,8 @@
+//Again, I am so sorry, but good news, this took less time than the first lab
+//I left everything in, so uncomment and recomment to pull up just the normaldist graph
+
 #include <iostream>
+#include <random>
 #include <string>
 #include <vector>
 #include "FiniteFunctions.h"
@@ -13,14 +17,14 @@ FiniteFunction::FiniteFunction(){
   m_RMin = -5.0;
   m_RMax = 5.0;
   this->checkPath("DefaultFunction");
-  m_Integral = NULL;
+  m_Integral = 0;
 }
 
 //initialised constructor
 FiniteFunction::FiniteFunction(double range_min, double range_max, std::string outfile){
-  m_RMin = range_min;
-  m_RMax = range_max;
-  m_Integral = NULL;
+  m_RMin = -10;
+  m_RMax = 10;
+  m_Integral = 0;
   this->checkPath(outfile); //Use provided string to name output files
 }
 
@@ -63,7 +67,14 @@ Integration by hand (output needed to normalise function when plotting)
 */ 
 double FiniteFunction::integrate(int Ndiv){ //private
   //ToDo write an integrator
-  return -99;  
+  double step = (m_RMax - m_RMin) / Ndiv;
+  double sum = 0.0;
+  for(int i = 0; i < Ndiv; ++i){
+    double x1 = m_RMin + i * step;
+    double x2 = m_RMin + (i + 1) * step;
+    sum += 0.5 * (this->callFunction(x1) + this->callFunction(x2)) * step;
+  }  
+  return sum;
 }
 double FiniteFunction::integral(int Ndiv) { //public
   if (Ndiv <= 0){
@@ -85,10 +96,12 @@ double FiniteFunction::integral(int Ndiv) { //public
 */
 // Generate paths from user defined stem
 void FiniteFunction::checkPath(std::string outfile){
- path fp = outfile;
+ std::filesystem::path fp = outfile;
  m_FunctionName = fp.stem(); 
  m_OutData = m_FunctionName+".data";
  m_OutPng = m_FunctionName+".png";
+
+ std::cout << "m_FunctionName: " << m_FunctionName << std::endl;
 }
 
 //Print (overridable)
@@ -98,6 +111,91 @@ void FiniteFunction::printInfo(){
   std::cout << "integral: " << m_Integral << ", calculated using " << m_IntDiv << " divisions" << std::endl;
   std::cout << "function: " << m_FunctionName << std::endl;
 }
+
+//Normal
+NormalDistribution::NormalDistribution(double mu, double sigma, double range_min, double range_max, std::string outfile)
+  : FiniteFunction(range_min, range_max, outfile), m_mu(mu), m_sigma(sigma){}
+
+double NormalDistribution::callFunction(double x){
+  return (1.0 / (m_sigma * std::sqrt(2 * M_PI))) * std::exp(-0.5 * std::pow((x - m_mu) / m_sigma, 2));
+}
+
+//Metropolis for Normal
+std::vector<double> NormalDistribution::metropolisSample(int n_samples, double std_dev){
+  std::vector<double> samples;
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
+  std::uniform_real_distribution<> uniform_dist(m_RMin, m_RMax);
+
+  std::normal_distribution<> normal_dist(0.0, std_dev);
+
+  //starting point
+  double x_current = uniform_dist(gen);
+  samples.push_back(x_current);
+
+  for (int i = 1; i < n_samples; ++i){
+    double x_candidate = x_current + normal_dist(gen);
+
+    double f_current = this->callFunction(x_current);
+    double f_candidate = this->callFunction(x_candidate);
+    double A = std::min(f_candidate / f_current, 1.0);
+
+    std::uniform_real_distribution<> acceptance_dis(0.0, 1.0);
+    double T = acceptance_dis(gen);
+
+    if(T < A){
+      x_current = x_candidate;
+    }
+    samples.push_back(x_current);
+
+  }
+  return samples;
+}
+
+
+
+//Cauchy
+CauchyLorentzDistribution::CauchyLorentzDistribution(double x0, double gamma, double range_min, double range_max, std::string outfile)
+  : FiniteFunction(range_min, range_max, outfile), m_x0(x0), m_gamma(gamma){}
+
+double CauchyLorentzDistribution::callFunction(double x){
+  return (1.0 / ((M_PI * m_gamma) * (1 + std::pow((x - m_x0) / m_gamma, 2))));
+}
+
+//Negative
+NegativeCrystalBallDistribution::NegativeCrystalBallDistribution(double x_bar, double sigma, double alpha, double n, double range_min, double range_max, std::string outfile)
+  : FiniteFunction(range_min, range_max, outfile), m_x_bar(x_bar), m_sigma(sigma), m_alpha(alpha), m_n(n){
+  m_N = 1.0 / m_sigma * (this->C(m_alpha, m_n) + this->D(m_alpha));
+  }
+
+double NegativeCrystalBallDistribution::callFunction(double x){
+  double z = std::pow(x - m_x_bar,2) / m_sigma;
+  if (z > -m_alpha) {
+    return m_N * (std::exp(-0.5/m_sigma * std::pow(z, 2)));
+  }else {
+    double A = this->A(m_alpha, m_n);
+    double B = this ->B(m_alpha, m_n);
+    return m_N * (A * std::pow((B - z),-m_n));
+  }
+}
+
+double NegativeCrystalBallDistribution::A(double alpha, double n){
+  return (std::pow(n / std::abs(alpha), n)) * std::exp((std::abs(alpha), 2) / -2);
+}
+
+double NegativeCrystalBallDistribution::B(double alpha, double n){
+  return n / std::abs(alpha) - std::abs(alpha);
+}
+
+double NegativeCrystalBallDistribution::C(double alpha, double n){
+  return (n / std::abs(alpha)) * (1 / n-1) * std::exp(-std::pow(std::abs(alpha), 2) /2);
+}
+
+double NegativeCrystalBallDistribution::D(double alpha){
+  return std::sqrt(M_PI / 2) * ( 1 + std::erf(std::abs(alpha)/ std::sqrt(2)));
+}
+
 
 /*
 ###################
